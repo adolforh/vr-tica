@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Experiencias inmersivas TICA</title>
+<meta name="description" content="Clase y exposición en realidad virtual sobre transformación digital educativa, para Meta Quest.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --night: #101317;
+    --paper: #F2EEE6;
+    --muted: #A9ADB2;
+    --gold: #E3A916;
+    --board: #1E3B34;
+    --chalk-gold: #F2C94C;
+    --line: rgba(242, 238, 230, 0.14);
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    background: var(--night);
+    color: var(--paper);
+    font: 18px/1.55 "Archivo", "Helvetica Neue", Arial, sans-serif;
+    padding-inline: 24px;
+    padding-block: calc(40px + env(safe-area-inset-top, 0px)) calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+  main { max-width: 1080px; margin: 0 auto; display: grid; gap: 40px; }
+  .kicker { font: 500 13px/1.2 "IBM Plex Mono", ui-monospace, Menlo, monospace; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); }
+  h1 { margin: 10px 0 0; font: 800 clamp(34px, 6vw, 60px)/1.02 "Archivo", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.02em; text-wrap: balance; }
+  .lede { margin: 14px 0 0; max-width: 62ch; color: var(--muted); font-size: 19px; }
+
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  .choice {
+    display: grid; grid-template-rows: auto 1fr auto; gap: 18px;
+    padding: 32px 30px 30px;
+    border-radius: 8px;
+    color: var(--paper); text-decoration: none;
+    border: 2px solid transparent;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+    min-height: 340px;
+  }
+  .choice:hover, .choice:focus-visible { transform: translateY(-3px); border-color: var(--paper); outline: none; }
+  .aula { background: var(--board); }
+  .pabellon { background: #22272D; }
+  .choice .tag { font: 500 13px/1.2 "IBM Plex Mono", ui-monospace, Menlo, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
+  .aula .tag { color: var(--chalk-gold); }
+  .pabellon .tag { color: var(--gold); }
+  .choice h2 { margin: 8px 0 0; font: 800 38px/1.05 "Archivo", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+  .choice p { margin: 0; color: rgba(242, 238, 230, 0.82); }
+  .choice ul { margin: 12px 0 0; padding-left: 20px; color: rgba(242, 238, 230, 0.82); display: grid; gap: 4px; }
+  .go {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 20px 22px; border-radius: 6px;
+    font: 800 22px/1.1 "Archivo", "Helvetica Neue", Arial, sans-serif;
+  }
+  .aula .go { background: var(--chalk-gold); color: #1B1606; }
+  .pabellon .go { background: var(--gold); color: #17130A; }
+  .go svg { flex: none; }
+
+  .help { border-top: 1px solid var(--line); padding-top: 28px; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 24px; }
+  .help h3 { margin: 0 0 8px; font: 500 13px/1.2 "IBM Plex Mono", ui-monospace, Menlo, monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+  .help p { margin: 0; color: var(--muted); font-size: 17px; }
+  .help b { color: var(--paper); font-weight: 600; }
+  footer { color: var(--muted); font-size: 15px; border-top: 1px solid var(--line); padding-top: 18px; }
+  @media (prefers-reduced-motion: reduce) { .choice { transition: none; } .choice:hover { transform: none; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">Realidad virtual · Meta Quest</div>
+    <h1>Transformación digital educativa</h1>
+    <p class="lede">Dos experiencias inmersivas de los grupos TICA y Tecno-Innovaciones de la UPTC. Elige una, y dentro de ella pulsa <b>Entrar en realidad virtual</b>.</p>
+  </header>
+
+  <section class="choices" aria-label="Experiencias">
+    <a class="choice aula" href="aula.html">
+      <div>
+        <div class="tag">Clase · 6 estaciones · ~15 min</div>
+        <h2>Aula de Transformación Digital</h2>
+      </div>
+      <div>
+        <p>Pizarras en círculo con una clase sobre qué es la transformación digital educativa, sus elementos, aspectos clave y hoja de ruta.</p>
+        <ul>
+          <li>Maquetas 3D en cada estación</li>
+          <li>Narración en voz alta</li>
+          <li>Autoevaluación de 3 preguntas</li>
+        </ul>
+      </div>
+      <span class="go">Entrar al aula
+        <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9h22M16 2l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <a class="choice pabellon" href="pabellon.html">
+      <div>
+        <div class="tag">Exposición · 8 salas · recorrido libre</div>
+        <h2>Pabellón TICA · GTI</h2>
+      </div>
+      <div>
+        <p>Una rotonda de exposición con las líneas, las personas, los proyectos, la producción, las redes y los eventos de los grupos.</p>
+        <ul>
+          <li>Escultura de datos 2018–2026</li>
+          <li>Mesas de exhibición en 3D</li>
+          <li>Audioguía en cada sala</li>
+        </ul>
+      </div>
+      <span class="go">Entrar al pabellón
+        <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9h22M16 2l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+  </section>
+
+  <section class="help" aria-label="Controles">
+    <div>
+      <h3>Apuntar y elegir</h3>
+      <p>Apunta con el control y presiona el <b>gatillo</b>. Con las manos, junta índice y pulgar.</p>
+    </div>
+    <div>
+      <h3>Moverse y girar</h3>
+      <p>En el pabellón, apunta al piso o a un <b>círculo dorado</b> para desplazarte. El <b>joystick</b> gira la vista 30°.</p>
+    </div>
+    <div>
+      <h3>Salir</h3>
+      <p>Pulsa el botón <b>Meta</b> del control derecho para volver al navegador.</p>
+    </div>
+  </section>
+
+  <footer>Grupo de investigación TICA · Tecno-Innovaciones (GTI) · UPTC, Tunja · tica@uptc.edu.co</footer>
+</main>
+</body>
+</html>

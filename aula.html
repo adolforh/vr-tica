@@ -1,0 +1,1482 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aula de Transformación Digital</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Caveat:wght@600;700&display=swap">
+<style>
+  :root {
+    --ink: #0C181D;
+    --ink-2: #13252B;
+    --chalk: #EEF0E6;
+    --muted: #A9BDB5;
+    --gold: #F2C94C;
+    --cyan: #5FD3C6;
+    --line: rgba(238, 240, 230, 0.14);
+    color-scheme: dark;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--ink);
+    color: var(--chalk);
+    font: 15px/1.5 "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+  #scene {
+    position: fixed; inset: 0;
+    width: 100%; height: 100%;
+    display: block;
+    touch-action: none;
+    cursor: grab;
+  }
+  #scene.dragging { cursor: grabbing; }
+  #scene.pointing { cursor: pointer; }
+
+  .panel {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: 16px;
+    width: min(360px, calc(100% - 32px));
+    max-height: calc(100% - 96px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+    overflow: auto;
+    box-sizing: border-box;
+    padding: 20px 20px 18px;
+    display: flex; flex-direction: column; gap: 14px;
+    background: rgba(12, 24, 29, 0.9);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+  }
+  .panel[hidden] { display: none !important; }
+  .panel > * { flex-shrink: 0; }
+  .eyebrow {
+    font: 700 24px/1 "Caveat", "Segoe Print", cursive;
+    color: var(--gold);
+  }
+  h1 {
+    margin: 4px 0 0;
+    font: 800 26px/1.08 "Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+  }
+  .lede { margin: 8px 0 0; color: var(--muted); }
+  .vr {
+    appearance: none; border: 0; cursor: pointer;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--gold); color: #1B1606;
+    font: 700 16px/1.2 "Atkinson Hyperlegible", system-ui, sans-serif;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .vr:hover { filter: brightness(1.06); }
+  .vr:focus-visible, .panel button:focus-visible, .panel-toggle:focus-visible, .panel summary:focus-visible, .toggle input:focus-visible {
+    outline: 2px solid var(--cyan); outline-offset: 2px;
+  }
+  .vr svg { flex: none; }
+  .status { margin: -4px 0 0; font-size: 14px; color: var(--muted); min-height: 0; }
+  .status:empty { display: none; }
+  .status.warn { color: #F3B7A6; }
+
+  .stations-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    border-top: 1px solid var(--line); padding-top: 12px;
+  }
+  .stations { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+  .stations button {
+    width: 100%; appearance: none; cursor: pointer;
+    display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 8px;
+    background: transparent; color: var(--chalk);
+    border: 1px solid transparent;
+    font: 400 15px/1.2 "Atkinson Hyperlegible", system-ui, sans-serif; text-align: left;
+  }
+  .stations button:hover { background: rgba(238, 240, 230, 0.06); }
+  .stations button[aria-current="step"] { border-color: rgba(242, 201, 76, 0.55); background: rgba(242, 201, 76, 0.08); }
+  .stations .num { font: 700 22px/1 "Caveat", cursive; color: var(--gold); font-variant-numeric: tabular-nums; }
+  .stations .state { font-size: 12px; color: var(--muted); }
+  .stations .state.done { color: var(--cyan); }
+
+  .toggle { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--chalk); cursor: pointer; }
+  .toggle input { margin-top: 3px; accent-color: var(--gold); width: 16px; height: 16px; flex: none; }
+
+  .howto { border-top: 1px solid var(--line); padding-top: 10px; font-size: 14px; }
+  .howto summary { cursor: pointer; color: var(--chalk); font-weight: 700; }
+  .howto ol { margin: 8px 0 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; }
+  .howto b { color: var(--chalk); font-weight: 700; }
+
+  .panel-toggle {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: 16px;
+    appearance: none; cursor: pointer;
+    padding: 9px 12px; border-radius: 8px;
+    background: rgba(12, 24, 29, 0.85); color: var(--chalk);
+    border: 1px solid var(--line);
+    font: 700 13px/1 "Atkinson Hyperlegible", system-ui, sans-serif;
+  }
+  .hint {
+    position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    max-width: calc(100% - 32px); box-sizing: border-box;
+    padding: 8px 14px; border-radius: 999px;
+    background: rgba(12, 24, 29, 0.82); border: 1px solid var(--line);
+    color: var(--muted); font-size: 13px; text-align: center;
+    pointer-events: none;
+  }
+  .hint kbd {
+    font: 700 12px/1 "Atkinson Hyperlegible", system-ui, sans-serif; color: var(--chalk);
+    border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px;
+  }
+  .loadfail {
+    position: fixed; inset: 0; display: grid; place-items: center; padding-inline: 16px;
+    text-align: center; color: var(--muted);
+  }
+  @media (max-width: 560px) {
+    .hint { font-size: 12px; }
+    h1 { font-size: 23px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene" aria-label="Aula virtual en 3D con seis pizarras dispuestas en círculo"></canvas>
+
+<aside class="panel" id="panel">
+  <div>
+    <div class="eyebrow">Clase inmersiva para Meta Quest</div>
+    <h1>Aula de Transformación Digital</h1>
+    <p class="lede">Seis estaciones en círculo sobre qué es la transformación digital educativa en la universidad, sus elementos y sus aspectos clave.</p>
+  </div>
+  <a href="index.html" style="color:inherit;font:600 14px/1.2 Archivo,Arial,sans-serif;text-decoration:underline;text-underline-offset:3px;opacity:.85">← Volver a la portada</a>
+  <button id="vrBtn" class="vr" type="button">
+    <svg width="22" height="14" viewBox="0 0 22 14" aria-hidden="true"><path fill="currentColor" d="M3 0h16a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3h-4.2a2 2 0 0 1-1.7-1l-1.3-2.2a1 1 0 0 0-1.7 0L8.8 13a2 2 0 0 1-1.7 1H3a3 3 0 0 1-3-3V3a3 3 0 0 1 3-3Zm3 4.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Zm10 0a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg>
+    <span id="vrLabel">Entrar en realidad virtual</span>
+  </button>
+  <p id="vrStatus" class="status" role="status"></p>
+
+  <div class="stations-head"><span>Recorrido</span><span id="progress">1 de 6 visitadas</span></div>
+  <ol id="stationList" class="stations"></ol>
+
+  <label class="toggle" for="autoNarr">
+    <input type="checkbox" id="autoNarr">
+    <span>Narración automática al cambiar de diapositiva</span>
+  </label>
+
+  <details class="howto" id="howto">
+    <summary>Cómo verla en las gafas Meta Quest</summary>
+    <ol>
+      <li>Abre este enlace en el <b>navegador de Meta Quest</b>.</li>
+      <li>Pulsa <b>Entrar en realidad virtual</b> y acepta el permiso.</li>
+      <li>Apunta a los botones de la pizarra y presiona el <b>gatillo</b> (o junta índice y pulgar si usas las manos).</li>
+      <li>Gira el cuerpo o usa el <b>joystick</b> para girar de 30° en 30°. Sigue las flechas doradas del piso.</li>
+      <li>Para salir, pulsa el botón <b>Meta</b> del control derecho.</li>
+    </ol>
+  </details>
+</aside>
+<button id="panelToggle" class="panel-toggle" type="button" aria-controls="panel" aria-expanded="true">Ocultar panel</button>
+<div class="hint" id="hint">Arrastra para mirar alrededor · Haz clic en los botones de la pizarra · <kbd>←</kbd> <kbd>→</kbd> cambian de diapositiva</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  if (!window.THREE) {
+    const d = document.createElement("div");
+    d.className = "loadfail";
+    d.textContent = "No se pudo cargar el motor 3D. Revisa la conexión a internet y recarga la página.";
+    document.body.appendChild(d);
+    return;
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  CONTENIDO DE LA CLASE
+   * ------------------------------------------------------------------ */
+  const STATIONS = [
+    {
+      name: "Bienvenida",
+      slides: [
+        {
+          type: "text",
+          title: "Transformación digital educativa en la universidad",
+          body: "Bienvenido a esta clase inmersiva. A tu alrededor hay seis estaciones dispuestas en círculo. Cada una tiene una pizarra con la explicación y, frente a ella, una maqueta que ilustra la idea central.",
+          note: "Apunta a los botones y presiona el gatillo. Sigue las flechas doradas del piso."
+        },
+        {
+          type: "list", cols: 1,
+          title: "Lo que vas a aprender",
+          items: [
+            ["Concepto", "Qué es y qué no es la transformación digital educativa."],
+            ["Elementos", "Las dimensiones que una universidad debe transformar."],
+            ["Personas y cultura", "Roles, competencias digitales y gestión del cambio."],
+            ["Aspectos clave", "Equidad, datos, inteligencia artificial, calidad y sostenibilidad."],
+            ["Hoja de ruta", "Fases para implementarla y cómo medir el avance."]
+          ]
+        }
+      ]
+    },
+    {
+      name: "¿Qué es?",
+      slides: [
+        {
+          type: "text",
+          title: "Una definición de trabajo",
+          body: "La transformación digital educativa es un proceso estratégico, sistémico y continuo en el que la universidad replantea su cultura, su pedagogía, sus procesos y su relación con la sociedad, apoyándose en tecnologías digitales, para ofrecer una formación más pertinente, flexible e inclusiva.",
+          note: "La tecnología es el medio. El cambio institucional es el fin."
+        },
+        {
+          type: "steps",
+          title: "Tres niveles que suelen confundirse",
+          items: [
+            ["Digitización", "Pasar lo analógico a formato digital. Ejemplo: escanear actas o subir guías en PDF."],
+            ["Digitalización", "Usar tecnología para hacer mejor lo mismo. Ejemplo: matrícula en línea o aula virtual como repositorio."],
+            ["Transformación digital", "Rediseñar el modelo. Ejemplo: rutas de aprendizaje flexibles, microcredenciales y alertas tempranas para acompañar al estudiante."]
+          ]
+        },
+        {
+          type: "text",
+          title: "La mirada de EDUCAUSE",
+          body: "EDUCAUSE, asociación que promueve el uso de las tecnologías de la información en la educación superior, la describe como una serie de cambios profundos y coordinados en la cultura, el talento humano y la tecnología, que habilitan nuevos modelos educativos y operativos y transforman la dirección estratégica y la propuesta de valor de la institución.",
+          note: "Tres palabras para recordar: profundos, coordinados, institucionales."
+        },
+        {
+          type: "compare",
+          title: "Mitos y realidades",
+          rows: [
+            ["Es un proyecto de la oficina de sistemas.", "Es un proyecto institucional, liderado por la dirección académica y administrativa."],
+            ["Es lo mismo que virtualizar cursos.", "Abarca docencia presencial, virtual e híbrida, investigación, extensión y gestión."],
+            ["Termina cuando se instala la plataforma.", "Es continuo: se evalúa, se ajusta y se renueva."],
+            ["Reemplaza al docente.", "Redefine su rol como diseñador y acompañante del aprendizaje."]
+          ]
+        }
+      ]
+    },
+    {
+      name: "Elementos",
+      slides: [
+        {
+          type: "text",
+          title: "Un marco de referencia: DigCompOrg",
+          body: "El Centro Común de Investigación de la Comisión Europea propuso en 2015 el marco DigCompOrg para organizaciones educativas digitalmente competentes. Organiza la transformación en siete elementos interdependientes. Sirve como lista de verificación: si uno queda rezagado, frena a los demás.",
+          note: "Mira la maqueta: los siete elementos giran alrededor del estudiante."
+        },
+        {
+          type: "list", cols: 2,
+          title: "Los siete elementos (1 de 2)",
+          items: [
+            ["Liderazgo y gobernanza", "Visión compartida, política institucional, presupuesto y responsables claros."],
+            ["Enseñanza y aprendizaje", "Metodologías activas, aulas híbridas y diseño centrado en el estudiante."],
+            ["Desarrollo profesional", "Formación continua de docentes y personal en competencias digitales."],
+            ["Prácticas de evaluación", "Evaluación formativa, retroalimentación oportuna y evidencias digitales."]
+          ]
+        },
+        {
+          type: "list", cols: 2,
+          title: "Los siete elementos (2 de 2)",
+          items: [
+            ["Contenidos y currículo", "Recursos educativos abiertos y competencias digitales dentro de los programas."],
+            ["Colaboración y redes", "Alianzas con otras instituciones, empresas, Estado y comunidad."],
+            ["Infraestructura", "Conectividad, plataformas, dispositivos, soporte técnico y ciberseguridad."],
+            ["Complemento: gestión con datos", "No es parte del marco, pero en universidades suele sumarse: sistemas integrados para decidir con evidencia."]
+          ]
+        }
+      ]
+    },
+    {
+      name: "Personas y cultura",
+      slides: [
+        {
+          type: "list", cols: 2,
+          title: "Quiénes transforman la universidad",
+          items: [
+            ["Directivos", "Definen la visión, priorizan recursos y dan ejemplo en el uso de datos y herramientas."],
+            ["Docentes", "Rediseñan cursos, experimentan con metodologías y evalúan su impacto."],
+            ["Estudiantes", "Participan como co-diseñadores de su experiencia, no solo como usuarios."],
+            ["Personal administrativo", "Simplifica y automatiza trámites pensando en quien los usa."]
+          ]
+        },
+        {
+          type: "list", cols: 2,
+          title: "Competencia digital docente: DigCompEdu",
+          subtitle: "Marco europeo de 2017 con 6 áreas y 22 competencias.",
+          items: [
+            ["Compromiso profesional", "Comunicación, colaboración y desarrollo profesional con medios digitales."],
+            ["Recursos digitales", "Seleccionar, crear, adaptar y compartir recursos."],
+            ["Enseñanza y aprendizaje", "Orientar, colaborar y promover el aprendizaje autorregulado."],
+            ["Evaluación", "Estrategias de evaluación, analítica y retroalimentación."],
+            ["Empoderar al estudiante", "Accesibilidad, inclusión, personalización y participación activa."],
+            ["Competencia digital del estudiante", "Información, comunicación, creación de contenido, seguridad y resolución de problemas."]
+          ]
+        },
+        {
+          type: "text",
+          title: "La cultura pesa más que la tecnología",
+          body: "La resistencia al cambio es natural cuando las personas no ven el sentido de lo nuevo o temen perder su lugar. Funciona mejor partir de problemas reales de docentes y estudiantes, formar comunidades de práctica, reconocer la innovación en la evaluación docente y comunicar los resultados tempranos.",
+          note: "Pregunta guía: ¿qué problema de mis estudiantes resuelve este cambio?"
+        }
+      ]
+    },
+    {
+      name: "Aspectos clave",
+      slides: [
+        {
+          type: "list", cols: 1,
+          title: "Cinco aspectos que no pueden faltar",
+          items: [
+            ["Equidad", "Cerrar brechas de conectividad, dispositivos y habilidades."],
+            ["Ética y datos", "Proteger la privacidad y usar la analítica con transparencia."],
+            ["Inteligencia artificial", "Políticas de uso, integridad académica y alfabetización en IA."],
+            ["Calidad", "Alinear la transformación con el aseguramiento de la calidad."],
+            ["Sostenibilidad", "Presupuesto recurrente, renovación tecnológica y ciberseguridad."]
+          ]
+        },
+        {
+          type: "text",
+          title: "Equidad: que nadie se quede atrás",
+          body: "La brecha digital no es solo de acceso a internet. También es de dispositivos, de habilidades y de condiciones para estudiar. En zonas rurales la conectividad suele ser intermitente. Diseñar para baja conectividad (contenidos descargables, actividades asincrónicas, aplicaciones livianas) y garantizar accesibilidad para personas con discapacidad es parte de la transformación.",
+          note: "Si el diseño no funciona para el estudiante con menos recursos, no está terminado."
+        },
+        {
+          type: "text",
+          title: "Datos, ética e inteligencia artificial",
+          body: "La analítica del aprendizaje permite detectar a tiempo a estudiantes en riesgo de deserción, pero exige transparencia, consentimiento y protección de datos personales (en Colombia, Ley 1581 de 2012). La IA generativa abre posibilidades de tutoría y retroalimentación, y obliga a definir políticas de uso, integridad académica y formación en IA para docentes y estudiantes.",
+          note: "Cada dato recogido debe tener un propósito educativo explícito."
+        },
+        {
+          type: "text",
+          title: "Calidad y sostenibilidad",
+          body: "La transformación debe alinearse con el sistema de aseguramiento de la calidad, el registro calificado y la acreditación. Requiere presupuesto recurrente y no solo compras puntuales, gestión de licencias, renovación tecnológica y una política de ciberseguridad que proteja la continuidad académica.",
+          note: "Lo que no se financia cada año, no se sostiene."
+        }
+      ]
+    },
+    {
+      name: "Hoja de ruta",
+      slides: [
+        {
+          type: "steps",
+          title: "Cinco fases para implementarla",
+          items: [
+            ["Diagnóstico", "Medir la madurez digital actual y escuchar a la comunidad universitaria."],
+            ["Visión y estrategia", "Un plan de transformación alineado con el plan de desarrollo, con metas y responsables."],
+            ["Pilotos", "Probar en programas o procesos concretos, con evaluación rigurosa."],
+            ["Escalamiento", "Extender lo que funciona, con formación y soporte."],
+            ["Evaluación continua", "Indicadores, retroalimentación y ajustes periódicos."]
+          ]
+        },
+        {
+          type: "list", cols: 2,
+          title: "Indicadores de ejemplo",
+          items: [
+            ["Docencia", "Porcentaje de docentes con formación certificada en competencia digital."],
+            ["Estudiantes", "Tasa de retención y satisfacción con la experiencia de aprendizaje."],
+            ["Gestión", "Porcentaje de trámites completamente en línea y tiempo de respuesta."],
+            ["Equidad", "Porcentaje de estudiantes con conectividad y dispositivo adecuados."]
+          ]
+        },
+        {
+          type: "quiz", n: 1,
+          q: "Una universidad escanea todas sus actas y las publica en PDF. ¿En qué nivel está?",
+          options: ["Digitización", "Digitalización", "Transformación digital"],
+          correct: 0,
+          explain: "Pasar un documento de papel a formato digital es digitización. Todavía no cambia el proceso ni el modelo."
+        },
+        {
+          type: "quiz", n: 2,
+          q: "¿Cuál de estos NO es uno de los siete elementos del marco DigCompOrg?",
+          options: ["Liderazgo y gobernanza", "Prácticas de evaluación", "Marketing digital"],
+          correct: 2,
+          explain: "Los siete elementos son liderazgo, enseñanza, desarrollo profesional, evaluación, contenidos, colaboración e infraestructura."
+        },
+        {
+          type: "quiz", n: 3,
+          q: "¿Cuál es el primer paso recomendado en la hoja de ruta?",
+          options: ["Comprar una nueva plataforma", "Hacer un diagnóstico de madurez digital", "Virtualizar todos los cursos"],
+          correct: 1,
+          explain: "Sin diagnóstico, las inversiones responden a modas y no a las necesidades reales de la institución."
+        },
+        { type: "end", title: "Cierre de la clase" }
+      ]
+    }
+  ];
+
+  /* ------------------------------------------------------------------ *
+   *  CONSTANTES VISUALES
+   * ------------------------------------------------------------------ */
+  const C = {
+    ink: "#0C181D", board: "#1D3A33", chalk: "#EEF0E6", muted: "#AFC2BA",
+    gold: "#F2C94C", cyan: "#5FD3C6", coral: "#EE8E78", wood: "#5A3E27", stone: "#2A3A3E"
+  };
+  const F_TITLE = '"Bricolage Grotesque", "Atkinson Hyperlegible", system-ui, sans-serif';
+  const F_BODY = '"Atkinson Hyperlegible", system-ui, sans-serif';
+  const F_HAND = '"Caveat", "Segoe Print", cursive';
+
+  const W = 2048, H = 1280, PAD = 110;
+  const BOARD_W = 2.2, BOARD_H = BOARD_W * H / W;
+  const R_BOARD = 2.9, BOARD_Y = 1.72, R_DIO = 1.95, PED_H = 0.55;
+  const N = STATIONS.length;
+  const angleOf = i => i * (Math.PI * 2 / N);
+
+  const state = {
+    active: 0,
+    slide: STATIONS.map(() => 0),
+    visited: new Set([0]),
+    autoNarrate: false
+  };
+
+  /* ------------------------------------------------------------------ *
+   *  RENDERER, ESCENA, CÁMARA
+   * ------------------------------------------------------------------ */
+  const canvasEl = document.getElementById("scene");
+  const renderer = new THREE.WebGLRenderer({ canvas: canvasEl, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.xr.enabled = true;
+  renderer.xr.setReferenceSpaceType("local-floor");
+  if (renderer.xr.setFramebufferScaleFactor) renderer.xr.setFramebufferScaleFactor(1.2);
+  const maxAniso = renderer.capabilities.getMaxAnisotropy();
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(C.ink);
+  scene.fog = new THREE.Fog(C.ink, 9, 26);
+
+  const camera = new THREE.PerspectiveCamera(68, window.innerWidth / window.innerHeight, 0.05, 80);
+  const dolly = new THREE.Group();
+  scene.add(dolly);
+  dolly.add(camera);
+  camera.position.set(0, 1.6, 0);
+
+  const view = { yaw: 0, pitch: -0.04, targetYaw: null };
+  function applyView() { camera.rotation.set(view.pitch, view.yaw, 0, "YXZ"); }
+  function fitFov() {
+    const a = window.innerWidth / window.innerHeight;
+    camera.fov = a < 0.8 ? 88 : a < 1.2 ? 76 : 64;
+    camera.aspect = a;
+    camera.updateProjectionMatrix();
+  }
+  fitFov(); applyView();
+
+  scene.add(new THREE.HemisphereLight(0xcfe6df, 0x0a1418, 0.95));
+  const sun = new THREE.DirectionalLight(0xfff0d4, 0.75);
+  sun.position.set(3, 6, 2);
+  scene.add(sun);
+
+  const stdMat = (color, o) => new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.75, metalness: 0.05 }, o || {}));
+  const basicMat = (color, o) => new THREE.MeshBasicMaterial(Object.assign({ color }, o || {}));
+
+  /* ---------- Cielo ---------- */
+  (function sky() {
+    const c = document.createElement("canvas"); c.width = 16; c.height = 512;
+    const g = c.getContext("2d");
+    const grd = g.createLinearGradient(0, 0, 0, 512);
+    grd.addColorStop(0, "#050C10");
+    grd.addColorStop(0.42, "#0B1A20");
+    grd.addColorStop(0.5, "#1C3B3F");
+    grd.addColorStop(0.56, "#0F2127");
+    grd.addColorStop(1, "#081115");
+    g.fillStyle = grd; g.fillRect(0, 0, 16, 512);
+    const t = new THREE.CanvasTexture(c);
+    const m = new THREE.Mesh(new THREE.SphereGeometry(40, 32, 16), new THREE.MeshBasicMaterial({ map: t, side: THREE.BackSide, fog: false }));
+    scene.add(m);
+
+    const n = 500, pos = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      const th = Math.random() * Math.PI * 2, ph = Math.random() * 1.2;
+      pos[i * 3] = 36 * Math.sin(ph) * Math.cos(th);
+      pos[i * 3 + 1] = 36 * Math.cos(ph) + 2;
+      pos[i * 3 + 2] = 36 * Math.sin(ph) * Math.sin(th);
+    }
+    const gg = new THREE.BufferGeometry();
+    gg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(gg, new THREE.PointsMaterial({ color: 0xcfe6df, size: 0.09, transparent: true, opacity: 0.55, fog: false })));
+  })();
+
+  /* ---------- Piso y anillos ---------- */
+  const floor = new THREE.Mesh(new THREE.CircleGeometry(12, 64), stdMat("#101E23", { roughness: 1 }));
+  floor.rotation.x = -Math.PI / 2;
+  scene.add(floor);
+  [1.45, 2.4, 4.4, 7.5].forEach((r, k) => {
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.012, r + 0.012, 128),
+      basicMat(C.cyan, { transparent: true, opacity: k === 1 ? 0.35 : 0.16 }));
+    ring.rotation.x = -Math.PI / 2; ring.position.y = 0.004;
+    scene.add(ring);
+  });
+  for (let i = 0; i < N; i++) {
+    const a = angleOf(i);
+    const path = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 1.0), basicMat(C.cyan, { transparent: true, opacity: 0.22 }));
+    path.rotation.x = -Math.PI / 2;
+    path.rotation.z = -a;
+    const mid = 1.45 + 0.5;
+    path.position.set(Math.sin(a) * mid * 0.98, 0.005, -Math.cos(a) * mid * 0.98);
+    scene.add(path);
+  }
+
+  /* ---------- Columnata: la universidad clásica con anillos de luz ---------- */
+  (function colonnade() {
+    const n = 22, R = 7.5;
+    const colGeo = new THREE.CylinderGeometry(0.2, 0.25, 4.2, 14);
+    const capGeo = new THREE.BoxGeometry(0.58, 0.16, 0.58);
+    const lightGeo = new THREE.TorusGeometry(0.235, 0.018, 6, 24);
+    const colMat = stdMat("#3A4A4C", { roughness: 0.9 });
+    const lightMat = basicMat(C.cyan, { transparent: true, opacity: 0.85 });
+    for (let i = 0; i < n; i++) {
+      const a = (i + 0.5) / n * Math.PI * 2;
+      const x = Math.sin(a) * R, z = -Math.cos(a) * R;
+      const col = new THREE.Mesh(colGeo, colMat); col.position.set(x, 2.1, z); scene.add(col);
+      const cap = new THREE.Mesh(capGeo, colMat); cap.position.set(x, 4.28, z); cap.rotation.y = -a; scene.add(cap);
+      [0.9, 2.2, 3.5].forEach(h => {
+        const l = new THREE.Mesh(lightGeo, lightMat); l.position.set(x, h, z); l.rotation.x = Math.PI / 2; scene.add(l);
+      });
+    }
+    const arch = new THREE.Mesh(new THREE.TorusGeometry(R, 0.2, 8, 96), colMat);
+    arch.rotation.x = Math.PI / 2; arch.position.y = 4.48; scene.add(arch);
+  })();
+
+  /* ---------- Partículas de datos ---------- */
+  const dust = (function () {
+    const n = 360, pos = new Float32Array(n * 3), spd = new Float32Array(n);
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, r = 3.6 + Math.random() * 3.6;
+      pos[i * 3] = Math.cos(a) * r; pos[i * 3 + 1] = Math.random() * 4.5; pos[i * 3 + 2] = Math.sin(a) * r;
+      spd[i] = 0.05 + Math.random() * 0.12;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    const p = new THREE.Points(g, new THREE.PointsMaterial({ color: C.cyan, size: 0.035, transparent: true, opacity: 0.7 }));
+    scene.add(p);
+    return { g, pos, spd, n };
+  })();
+
+  /* ------------------------------------------------------------------ *
+   *  PIZARRAS
+   * ------------------------------------------------------------------ */
+  const chalkBg = (function () {
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    g.fillStyle = C.board; g.fillRect(0, 0, W, H);
+    const v = g.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, W * 0.7);
+    v.addColorStop(0, "rgba(255,255,255,0.03)"); v.addColorStop(1, "rgba(0,0,0,0.28)");
+    g.fillStyle = v; g.fillRect(0, 0, W, H);
+    // borrones de tiza
+    for (let i = 0; i < 26; i++) {
+      g.save();
+      g.globalAlpha = 0.025 + Math.random() * 0.03;
+      g.strokeStyle = "#fff"; g.lineCap = "round";
+      g.lineWidth = 60 + Math.random() * 120;
+      g.beginPath();
+      const x = Math.random() * W, y = Math.random() * H;
+      g.moveTo(x, y);
+      g.bezierCurveTo(x + 200 * Math.random(), y - 80, x + 300, y + 60 * Math.random(), x + 380 + 200 * Math.random(), y + 20);
+      g.stroke(); g.restore();
+    }
+    for (let i = 0; i < 5000; i++) {
+      g.fillStyle = "rgba(255,255,255," + (Math.random() * 0.06).toFixed(3) + ")";
+      g.fillRect(Math.random() * W, Math.random() * H, 2, 2);
+    }
+    return c;
+  })();
+
+  function rr(g, x, y, w, h, r) {
+    g.beginPath();
+    g.moveTo(x + r, y); g.lineTo(x + w - r, y); g.quadraticCurveTo(x + w, y, x + w, y + r);
+    g.lineTo(x + w, y + h - r); g.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    g.lineTo(x + r, y + h); g.quadraticCurveTo(x, y + h, x, y + h - r);
+    g.lineTo(x, y + r); g.quadraticCurveTo(x, y, x + r, y); g.closePath();
+  }
+  function wrap(g, text, maxW) {
+    const words = text.split(" "), lines = [];
+    let line = "";
+    for (const w of words) {
+      const t = line ? line + " " + w : w;
+      if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+    }
+    if (line) lines.push(line);
+    return lines;
+  }
+  // y = línea base de la primera línea; devuelve la línea base siguiente
+  function para(g, text, x, y, maxW, lh) {
+    const ls = wrap(g, text, maxW);
+    ls.forEach((l, i) => g.fillText(l, x, y + i * lh));
+    return y + ls.length * lh;
+  }
+
+  const boards = [];
+  const pickables = [];
+
+  function makeLabelPlane(i) {
+    const c = document.createElement("canvas"); c.width = 1024; c.height = 160;
+    const g = c.getContext("2d");
+    const draw = () => {
+      g.clearRect(0, 0, 1024, 160);
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.font = "700 96px " + F_HAND; g.fillStyle = C.gold;
+      const num = String(i + 1).padStart(2, "0");
+      const name = STATIONS[i].name;
+      g.font = "700 96px " + F_HAND; const wn = g.measureText(num).width;
+      g.font = "800 74px " + F_TITLE; const wt = g.measureText(name).width;
+      const total = wn + 34 + wt, x0 = 512 - total / 2;
+      g.textAlign = "left";
+      g.font = "700 96px " + F_HAND; g.fillStyle = C.gold; g.fillText(num, x0, 84);
+      g.font = "800 74px " + F_TITLE; g.fillStyle = C.chalk; g.fillText(name, x0 + wn + 34, 84);
+      t.needsUpdate = true;
+    };
+    const t = new THREE.CanvasTexture(c); t.anisotropy = maxAniso;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.25, 0.195), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false }));
+    m.userData.draw = draw;
+    return m;
+  }
+
+  for (let i = 0; i < N; i++) {
+    const a = angleOf(i);
+    const grp = new THREE.Group();
+    grp.position.set(Math.sin(a) * R_BOARD, 0, -Math.cos(a) * R_BOARD);
+    grp.lookAt(0, 0, 0);
+    scene.add(grp);
+
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const ctx = c.getContext("2d");
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = maxAniso;
+    const mat = new THREE.MeshBasicMaterial({ map: tex });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W, BOARD_H), mat);
+    mesh.position.y = BOARD_Y;
+    mesh.userData.board = i;
+    grp.add(mesh);
+    pickables.push(mesh);
+
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W + 0.12, BOARD_H + 0.12, 0.05), stdMat(C.wood, { roughness: 0.6 }));
+    frame.position.set(0, BOARD_Y, -0.03);
+    grp.add(frame);
+    const ledge = new THREE.Mesh(new THREE.BoxGeometry(BOARD_W * 0.92, 0.03, 0.09), stdMat(C.wood, { roughness: 0.6 }));
+    ledge.position.set(0, BOARD_Y - BOARD_H / 2 - 0.075, 0.03);
+    grp.add(ledge);
+    // tiza sobre la repisa
+    const chalkStick = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.08, 8), stdMat("#F4F2EA"));
+    chalkStick.rotation.z = Math.PI / 2; chalkStick.position.set(BOARD_W * 0.3, BOARD_Y - BOARD_H / 2 - 0.052, 0.04);
+    grp.add(chalkStick);
+    [-1, 1].forEach(s => {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, BOARD_Y - BOARD_H / 2, 10), stdMat("#46311F"));
+      leg.position.set(s * (BOARD_W / 2 - 0.15), (BOARD_Y - BOARD_H / 2) / 2, -0.06);
+      grp.add(leg);
+    });
+    const glow = new THREE.Mesh(new THREE.PlaneGeometry(BOARD_W + 0.24, BOARD_H + 0.24),
+      basicMat(C.gold, { transparent: true, opacity: 0, depthWrite: false }));
+    glow.position.set(0, BOARD_Y, -0.065);
+    grp.add(glow);
+
+    const label = makeLabelPlane(i);
+    label.position.set(0, BOARD_Y + BOARD_H / 2 + 0.2, 0);
+    grp.add(label);
+
+    boards.push({ idx: i, canvas: c, ctx, tex, mat, mesh, glow, label, regions: [], hover: null });
+  }
+
+  /* ---------- Dibujo de cada diapositiva ---------- */
+  let speakingBoard = -1;
+
+  function drawButton(g, b, r, kind) {
+    const hov = b.hover === r.id;
+    rr(g, r.x, r.y, r.w, r.h, 22);
+    if (r.disabled) {
+      g.strokeStyle = "rgba(238,240,230,0.18)"; g.lineWidth = 4; g.stroke();
+      g.fillStyle = "rgba(238,240,230,0.28)";
+    } else if (kind === "primary") {
+      g.fillStyle = hov ? "#FFE08A" : C.gold; g.fill();
+      g.fillStyle = "#1B1606";
+    } else {
+      g.fillStyle = hov ? "rgba(238,240,230,0.16)" : "rgba(238,240,230,0.05)"; g.fill();
+      g.strokeStyle = hov ? C.chalk : "rgba(238,240,230,0.55)"; g.lineWidth = 4; g.stroke();
+      g.fillStyle = C.chalk;
+    }
+    g.font = "700 46px " + F_BODY;
+    g.textAlign = "center"; g.textBaseline = "middle";
+    const tx = r.x + r.w / 2 + (r.arrow === "left" ? 18 : r.arrow === "right" ? -18 : 0);
+    g.fillText(r.label, tx, r.y + r.h / 2 + 2);
+    const tw = g.measureText(r.label).width;
+    if (r.arrow) {
+      const ax = r.arrow === "left" ? tx - tw / 2 - 34 : tx + tw / 2 + 34, ay = r.y + r.h / 2;
+      const d = r.arrow === "left" ? -1 : 1;
+      g.beginPath(); g.moveTo(ax + d * 14, ay); g.lineTo(ax - d * 10, ay - 16); g.lineTo(ax - d * 10, ay + 16); g.closePath(); g.fill();
+    }
+    g.textAlign = "left"; g.textBaseline = "alphabetic";
+  }
+
+  function quizSlides() { return STATIONS[N - 1].slides.filter(s => s.type === "quiz"); }
+
+  function drawBoard(b) {
+    const g = b.ctx, st = STATIONS[b.idx], si = state.slide[b.idx], s = st.slides[si];
+    b.regions = [];
+    g.drawImage(chalkBg, 0, 0);
+    g.textBaseline = "alphabetic"; g.textAlign = "left";
+
+    // Encabezado
+    g.font = "700 60px " + F_HAND; g.fillStyle = C.gold;
+    g.fillText("Estación " + (b.idx + 1) + " de " + N + "  ·  " + st.name, PAD, 120);
+    g.textAlign = "right"; g.font = "400 40px " + F_BODY; g.fillStyle = C.muted;
+    g.fillText("Diapositiva " + (si + 1) + " / " + st.slides.length, W - PAD, 114);
+    g.textAlign = "left";
+    g.strokeStyle = "rgba(238,240,230,0.16)"; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(PAD, 150); g.lineTo(W - PAD, 150); g.stroke();
+
+    const MAXW = W - 2 * PAD;
+    const BOTTOM = 1070;
+    let y = 150;
+
+    const title = s.type === "quiz" ? "Autoevaluación · pregunta " + s.n + " de 3" : s.title;
+    if (title) {
+      const ts = s.type === "quiz" ? 54 : 84;
+      g.font = (s.type === "quiz" ? "700 " : "800 ") + ts + "px " + (s.type === "quiz" ? F_BODY : F_TITLE);
+      g.fillStyle = s.type === "quiz" ? C.cyan : C.chalk;
+      y = para(g, title, PAD, y + ts + 34, MAXW, ts * 1.1) - ts * 1.1;
+    }
+    if (s.subtitle) {
+      g.font = "400 42px " + F_BODY; g.fillStyle = C.muted;
+      y = para(g, s.subtitle, PAD, y + 64, MAXW, 54) - 54;
+    }
+
+    if (s.type === "text") {
+      g.font = "400 58px " + F_BODY; g.fillStyle = C.chalk;
+      y = para(g, s.body, PAD, y + 108, MAXW, 82);
+      if (s.note) {
+        const ny = y + 44;
+        g.strokeStyle = C.gold; g.lineWidth = 6; g.lineCap = "round";
+        g.beginPath(); g.moveTo(PAD, ny - 20); g.lineTo(PAD + 50, ny - 22); g.stroke();
+        g.font = "700 64px " + F_HAND; g.fillStyle = C.gold;
+        para(g, s.note, PAD + 76, ny, MAXW - 76, 70);
+      }
+    }
+
+    else if (s.type === "list") {
+      const n = s.items.length, cols = s.cols || 1;
+      const top = y + 60;
+      if (cols === 1) {
+        const rowH = (BOTTOM - top) / n;
+        s.items.forEach((it, k) => {
+          const ry = top + k * rowH;
+          if (k > 0) { g.strokeStyle = "rgba(238,240,230,0.12)"; g.lineWidth = 2; g.beginPath(); g.moveTo(PAD, ry); g.lineTo(W - PAD, ry); g.stroke(); }
+          const base = ry + rowH / 2 + 17;
+          g.fillStyle = C.cyan; g.beginPath(); g.arc(PAD + 12, base - 17, 10, 0, Math.PI * 2); g.fill();
+          g.font = "700 50px " + F_BODY; g.fillStyle = C.chalk; g.fillText(it[0], PAD + 44, base);
+          g.font = "400 46px " + F_BODY; g.fillStyle = C.muted;
+          const lines = wrap(g, it[1], MAXW - 620);
+          const lh = 56, y0 = base - (lines.length - 1) * lh / 2;
+          lines.forEach((l, j) => g.fillText(l, PAD + 620, y0 + j * lh));
+        });
+      } else {
+        const rows = Math.ceil(n / cols), gap = 70;
+        const cellW = (MAXW - gap * (cols - 1)) / cols, cellH = (BOTTOM - top) / rows;
+        const fh = n > 4 ? 46 : 52, fd = n > 4 ? 40 : 46, lh = fd * 1.3;
+        s.items.forEach((it, k) => {
+          const cx = PAD + (k % cols) * (cellW + gap), cy = top + Math.floor(k / cols) * cellH;
+          g.fillStyle = C.cyan; g.beginPath(); g.arc(cx + 11, cy + fh * 0.62, 10, 0, Math.PI * 2); g.fill();
+          g.font = "700 " + fh + "px " + F_BODY; g.fillStyle = C.chalk;
+          const hy = para(g, it[0], cx + 40, cy + fh, cellW - 40, fh * 1.15);
+          g.font = "400 " + fd + "px " + F_BODY; g.fillStyle = C.muted;
+          para(g, it[1], cx + 40, hy + fd * 0.35, cellW - 40, lh);
+        });
+      }
+    }
+
+    else if (s.type === "steps") {
+      const n = s.items.length, top = y + 50;
+      const rowH = (BOTTOM - top) / n;
+      const big = n <= 3;
+      const fh = big ? 56 : 48, fd = big ? 46 : 42;
+      const cxr = PAD + 44;
+      g.strokeStyle = "rgba(95,211,198,0.45)"; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(cxr, top + rowH / 2); g.lineTo(cxr, top + rowH * (n - 0.5)); g.stroke();
+      s.items.forEach((it, k) => {
+        const cy = top + k * rowH + rowH / 2;
+        g.fillStyle = C.board; g.beginPath(); g.arc(cxr, cy, 40, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = C.cyan; g.lineWidth = 5; g.stroke();
+        g.fillStyle = C.cyan; g.font = "700 46px " + F_BODY; g.textAlign = "center"; g.textBaseline = "middle";
+        g.fillText(String(k + 1), cxr, cy + 2);
+        g.textAlign = "left"; g.textBaseline = "alphabetic";
+        g.font = "400 " + fd + "px " + F_BODY;
+        const dl = wrap(g, it[1], MAXW - 130);
+        const blockH = fh + 12 + dl.length * fd * 1.28;
+        let by = cy - blockH / 2 + fh * 0.85;
+        g.font = "700 " + fh + "px " + F_BODY; g.fillStyle = k === n - 1 && big ? C.gold : C.chalk;
+        g.fillText(it[0], PAD + 130, by);
+        g.font = "400 " + fd + "px " + F_BODY; g.fillStyle = C.muted;
+        dl.forEach((l, j) => g.fillText(l, PAD + 130, by + 12 + fd * 1.1 + j * fd * 1.28));
+      });
+    }
+
+    else if (s.type === "compare") {
+      const top = y + 50;
+      const c1 = 720, gap = 60, c2x = PAD + c1 + gap, c2 = MAXW - c1 - gap;
+      g.font = "700 40px " + F_BODY;
+      g.fillStyle = C.coral; g.fillText("MITO", PAD + 56, top + 40);
+      g.fillStyle = C.cyan; g.fillText("REALIDAD", c2x + 56, top + 40);
+      const rTop = top + 70, rowH = (BOTTOM - rTop) / s.rows.length;
+      s.rows.forEach((row, k) => {
+        const ry = rTop + k * rowH;
+        g.strokeStyle = "rgba(238,240,230,0.12)"; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(PAD, ry); g.lineTo(W - PAD, ry); g.stroke();
+        g.font = "400 42px " + F_BODY;
+        const l1 = wrap(g, row[0], c1 - 56), l2 = wrap(g, row[1], c2 - 56);
+        const lh = 52, mid = ry + rowH / 2;
+        // X de tiza
+        g.strokeStyle = C.coral; g.lineWidth = 6; g.lineCap = "round";
+        g.beginPath(); g.moveTo(PAD + 6, mid - 16); g.lineTo(PAD + 34, mid + 12); g.moveTo(PAD + 34, mid - 16); g.lineTo(PAD + 6, mid + 12); g.stroke();
+        // visto bueno
+        g.strokeStyle = C.cyan;
+        g.beginPath(); g.moveTo(c2x + 4, mid); g.lineTo(c2x + 16, mid + 13); g.lineTo(c2x + 38, mid - 16); g.stroke();
+        g.fillStyle = C.muted;
+        l1.forEach((l, j) => g.fillText(l, PAD + 56, mid - (l1.length - 1) * lh / 2 + j * lh + 14));
+        g.fillStyle = C.chalk;
+        l2.forEach((l, j) => g.fillText(l, c2x + 56, mid - (l2.length - 1) * lh / 2 + j * lh + 14));
+      });
+    }
+
+    else if (s.type === "quiz") {
+      g.font = "700 60px " + F_BODY; g.fillStyle = C.chalk;
+      y = para(g, s.q, PAD, y + 100, MAXW, 74);
+      const oh = 116, og = 24;
+      let oy = y + 10;
+      const answered = s.answer !== undefined;
+      s.options.forEach((opt, k) => {
+        const id = "opt" + k;
+        const r = { id, x: PAD, y: oy, w: MAXW, h: oh };
+        const hov = b.hover === id && !answered;
+        rr(g, r.x, r.y, r.w, r.h, 20);
+        let stroke = "rgba(238,240,230,0.5)", fill = hov ? "rgba(238,240,230,0.14)" : "rgba(238,240,230,0.05)", tag = "";
+        if (answered && k === s.correct) { stroke = C.cyan; fill = "rgba(95,211,198,0.16)"; tag = "Correcta"; }
+        else if (answered && k === s.answer) { stroke = C.coral; fill = "rgba(238,142,120,0.14)"; tag = "Tu respuesta"; }
+        else if (answered) { stroke = "rgba(238,240,230,0.2)"; }
+        g.fillStyle = fill; g.fill(); g.strokeStyle = stroke; g.lineWidth = answered && tag ? 6 : 4; g.stroke();
+        g.font = "700 48px " + F_BODY; g.fillStyle = C.gold;
+        g.fillText("ABC"[k] + ".", r.x + 36, r.y + oh / 2 + 17);
+        g.fillStyle = answered && !tag ? "rgba(238,240,230,0.5)" : C.chalk; g.font = "400 48px " + F_BODY;
+        g.fillText(opt, r.x + 110, r.y + oh / 2 + 17);
+        if (tag) {
+          g.textAlign = "right"; g.font = "700 40px " + F_BODY; g.fillStyle = k === s.correct ? C.cyan : C.coral;
+          g.fillText(tag, r.x + r.w - 36, r.y + oh / 2 + 14); g.textAlign = "left";
+        }
+        if (!answered) { r.action = () => answerQuiz(b.idx, s, k); b.regions.push(r); }
+        oy += oh + og;
+      });
+      if (answered) {
+        g.font = "700 64px " + F_HAND; g.fillStyle = s.answer === s.correct ? C.cyan : C.gold;
+        g.fillText(s.answer === s.correct ? "¡Muy bien!" : "Casi. Revisa la explicación:", PAD, oy + 60);
+        g.font = "400 46px " + F_BODY; g.fillStyle = C.chalk;
+        para(g, s.explain, PAD, oy + 130, MAXW, 58);
+      } else {
+        g.font = "700 56px " + F_HAND; g.fillStyle = C.muted;
+        g.fillText("Apunta a una opción y presiona el gatillo.", PAD, oy + 56);
+      }
+    }
+
+    else if (s.type === "end") {
+      const qs = quizSlides();
+      const done = qs.filter(q => q.answer !== undefined).length;
+      const ok = qs.filter(q => q.answer === q.correct).length;
+      g.font = "800 150px " + F_TITLE; g.fillStyle = C.gold;
+      g.fillText(ok + " / 3", PAD, y + 200);
+      g.font = "400 50px " + F_BODY; g.fillStyle = C.chalk;
+      const msg = done < 3
+        ? "Respondiste " + done + " de 3 preguntas. Vuelve a las diapositivas anteriores para completar la autoevaluación."
+        : ok === 3 ? "Respuestas correctas. Dominas las ideas centrales de la clase."
+        : "Respuestas correctas. Repasa las estaciones 2 y 3 para afianzar los conceptos.";
+      para(g, msg, PAD + 420, y + 110, MAXW - 420, 64);
+      g.font = "700 64px " + F_HAND; g.fillStyle = C.cyan;
+      g.fillText("Para llevar a tu contexto:", PAD, y + 330);
+      g.font = "400 50px " + F_BODY; g.fillStyle = C.chalk;
+      const ey = para(g, "¿Qué proceso de tu programa académico podría pasar de la digitalización a la transformación digital este semestre? ¿Quién debería liderarlo y cómo sabrías que funcionó?", PAD, y + 410, MAXW, 66);
+      const r = { id: "reset", x: PAD, y: Math.min(ey + 10, BOTTOM - 96), w: 560, h: 96, label: "Repetir autoevaluación" };
+      r.action = () => { qs.forEach(q => delete q.answer); gotoSlide(N - 1, st.slides.indexOf(qs[0])); };
+      drawButton(g, b, r, "ghost");
+      b.regions.push(r);
+    }
+
+    // Pie: botones de navegación
+    const fy = 1112, fh = 104;
+    const last = si === st.slides.length - 1;
+    const prev = { id: "prev", x: PAD, y: fy, w: 330, h: fh, label: "Anterior", arrow: "left", disabled: si === 0 };
+    const nextLabel = last ? (b.idx === N - 1 ? "Volver al inicio" : "Siguiente estación") : "Siguiente";
+    const next = { id: "next", x: W - PAD - 500, y: fy, w: 500, h: fh, label: nextLabel, arrow: "right" };
+    const listen = { id: "listen", x: next.x - 30 - 320, y: fy, w: 320, h: fh, label: speakingBoard === b.idx ? "Detener" : "Escuchar" };
+    prev.action = () => gotoSlide(b.idx, si - 1);
+    next.action = () => {
+      if (!last) gotoSlide(b.idx, si + 1);
+      else if (b.idx === N - 1) { gotoStation(0, true); gotoSlide(0, 0); }
+      else gotoStation(b.idx + 1, true);
+    };
+    listen.action = () => toggleSpeak(b.idx);
+    drawButton(g, b, prev, "ghost");
+    drawButton(g, b, listen, "ghost");
+    drawButton(g, b, next, "primary");
+    if (!prev.disabled) b.regions.push(prev);
+    b.regions.push(listen, next);
+
+    // puntos de progreso
+    const dotsX0 = prev.x + prev.w + 50, dotsX1 = listen.x - 50;
+    const n = st.slides.length, sp = Math.min(44, (dotsX1 - dotsX0) / n);
+    const startX = (dotsX0 + dotsX1) / 2 - (n - 1) * sp / 2;
+    for (let k = 0; k < n; k++) {
+      g.beginPath(); g.arc(startX + k * sp, fy + fh / 2, k === si ? 13 : 9, 0, Math.PI * 2);
+      g.fillStyle = k === si ? C.gold : "rgba(238,240,230,0.3)"; g.fill();
+    }
+
+    b.tex.needsUpdate = true;
+  }
+
+  function drawAll() { boards.forEach(b => { drawBoard(b); b.label.userData.draw(); }); }
+
+  /* ------------------------------------------------------------------ *
+   *  MAQUETAS (una por estación)
+   * ------------------------------------------------------------------ */
+  function makeSprite(text, opts) {
+    opts = opts || {};
+    const c = document.createElement("canvas"); c.width = 512; c.height = 128;
+    const g = c.getContext("2d");
+    const draw = () => {
+      g.clearRect(0, 0, 512, 128);
+      g.font = "700 50px " + F_BODY;
+      const tw = Math.min(g.measureText(text).width, 470);
+      rr(g, 256 - tw / 2 - 20, 30, tw + 40, 70, 35);
+      g.fillStyle = "rgba(12,24,29,0.82)"; g.fill();
+      g.textAlign = "center"; g.textBaseline = "middle";
+      g.fillStyle = opts.color || C.chalk;
+      g.fillText(text, 256, 67, 470);
+      t.needsUpdate = true;
+    };
+    const t = new THREE.CanvasTexture(c);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthWrite: false }));
+    const w = opts.w || 0.26;
+    sp.scale.set(w, w / 4, 1);
+    sp.userData.draw = draw;
+    spriteDraws.push(draw);
+    draw();
+    return sp;
+  }
+  const spriteDraws = [];
+  const animators = [];
+
+  function building(asLines) {
+    const grp = new THREE.Group();
+    const stone = stdMat("#CFC7B4", { roughness: 0.85 });
+    const parts = [];
+    parts.push([new THREE.BoxGeometry(0.46, 0.03, 0.26), [0, 0.015, 0]]);
+    for (let k = 0; k < 6; k++) parts.push([new THREE.CylinderGeometry(0.014, 0.016, 0.15, 10), [-0.2 + k * 0.08, 0.105, 0.085]]);
+    parts.push([new THREE.BoxGeometry(0.42, 0.15, 0.02), [0, 0.105, -0.095]]);
+    parts.push([new THREE.BoxGeometry(0.48, 0.028, 0.26), [0, 0.194, 0]]);
+    const shape = new THREE.Shape(); shape.moveTo(-0.25, 0); shape.lineTo(0.25, 0); shape.lineTo(0, 0.085); shape.closePath();
+    const roof = new THREE.ExtrudeGeometry(shape, { depth: 0.26, bevelEnabled: false }); roof.translate(0, 0, -0.13);
+    parts.push([roof, [0, 0.208, 0]]);
+    parts.forEach(([geo, p]) => {
+      const o = asLines
+        ? new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: C.cyan }))
+        : new THREE.Mesh(geo, stone);
+      o.position.set(p[0], p[1], p[2]);
+      grp.add(o);
+    });
+    return grp;
+  }
+
+  const DIORAMAS = [
+    // 0 · Del campus físico al campus digital
+    function (g) {
+      const a = building(false); a.scale.setScalar(0.55); a.position.set(-0.15, 0, 0); g.add(a);
+      const b = building(true); b.scale.setScalar(0.55); b.position.set(0.15, 0.03, 0); g.add(b);
+      const la = makeSprite("Campus físico", { w: 0.24 }); la.position.set(-0.15, 0.24, 0.05); g.add(la);
+      const lb = makeSprite("Campus digital", { w: 0.24, color: C.cyan }); lb.position.set(0.15, 0.27, 0.05); g.add(lb);
+      animators.push(t => { b.rotation.y = Math.sin(t * 0.6) * 0.5; b.position.y = 0.03 + Math.sin(t * 1.3) * 0.01; });
+    },
+    // 1 · Tres niveles
+    function (g) {
+      const spec = [[0.08, 0.05, "#7F948D", "Digitización", C.muted], [0.12, 0.13, C.cyan, "Digitalización", C.cyan], [0.17, 0.21, C.gold, "Transformación", C.gold]];
+      const stack = new THREE.Group(); g.add(stack);
+      spec.forEach(([r, h, col, txt, tc]) => {
+        const d = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.022, 40), stdMat(col, { transparent: true, opacity: 0.88, emissive: col, emissiveIntensity: 0.15 }));
+        d.position.y = h; stack.add(d);
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(r, 0.004, 6, 48), basicMat(col)); ring.rotation.x = Math.PI / 2; ring.position.y = h + 0.012; stack.add(ring);
+        const l = makeSprite(txt, { w: 0.25, color: tc }); l.position.set(0.3, h, 0.02); g.add(l);
+      });
+      const axis = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.22, 8), basicMat(C.chalk, { transparent: true, opacity: 0.5 }));
+      axis.position.y = 0.12; stack.add(axis);
+      stack.position.x = -0.06;
+      animators.push(t => { stack.rotation.y = t * 0.4; });
+    },
+    // 2 · Siete elementos alrededor del estudiante
+    function (g) {
+      const core = new THREE.Mesh(new THREE.SphereGeometry(0.045, 24, 16), stdMat(C.gold, { emissive: C.gold, emissiveIntensity: 0.35 }));
+      core.position.y = 0.17; g.add(core);
+      const cl = makeSprite("Estudiante", { w: 0.2, color: C.gold }); cl.position.set(0, 0.235, 0); g.add(cl);
+      const orbit = new THREE.Group(); orbit.position.y = 0.15; g.add(orbit);
+      const path = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.003, 6, 80), basicMat(C.cyan, { transparent: true, opacity: 0.5 }));
+      path.rotation.x = Math.PI / 2; orbit.add(path);
+      const names = ["Liderazgo", "Enseñanza", "Desarrollo prof.", "Evaluación", "Contenidos", "Redes", "Infraestructura"];
+      const nodes = names.map((nm, k) => {
+        const a = k / names.length * Math.PI * 2;
+        const s = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 12), stdMat(C.cyan, { emissive: C.cyan, emissiveIntensity: 0.4 }));
+        s.position.set(Math.cos(a) * 0.22, 0, Math.sin(a) * 0.22); orbit.add(s);
+        const l = makeSprite(nm, { w: 0.17 }); l.position.set(s.position.x, 0.045, s.position.z); orbit.add(l);
+        return s;
+      });
+      animators.push(t => { orbit.rotation.y = t * 0.25; nodes.forEach((n, k) => n.scale.setScalar(1 + 0.2 * Math.sin(t * 2 + k))); });
+    },
+    // 3 · Personas conectadas
+    function (g) {
+      const people = [["Directivos", C.gold], ["Docentes", C.cyan], ["Estudiantes", C.chalk], ["Administrativos", C.coral]];
+      const ring = new THREE.Group(); g.add(ring);
+      const pts = people.map(([nm, col], k) => {
+        const a = k / people.length * Math.PI * 2 + Math.PI / 4;
+        const x = Math.cos(a) * 0.17, z = Math.sin(a) * 0.17;
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.034, 0.1, 14), stdMat(col));
+        body.position.set(x, 0.05, z); ring.add(body);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.022, 14, 10), stdMat(col));
+        head.position.set(x, 0.125, z); ring.add(head);
+        const l = makeSprite(nm, { w: 0.2, color: col }); l.position.set(x, 0.19, z); ring.add(l);
+        return new THREE.Vector3(x, 0.09, z);
+      });
+      const seg = [];
+      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) seg.push(pts[i], pts[j]);
+      const lm = new THREE.LineBasicMaterial({ color: C.cyan, transparent: true, opacity: 0.6 });
+      ring.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg), lm));
+      animators.push(t => { ring.rotation.y = t * 0.2; lm.opacity = 0.35 + 0.3 * (0.5 + 0.5 * Math.sin(t * 2.2)); });
+    },
+    // 4 · Cinco pilares que sostienen la transformación
+    function (g) {
+      const base = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.02, 0.12), stdMat("#3A4A4C")); base.position.y = 0.01; g.add(base);
+      const names = ["Equidad", "Ética y datos", "IA", "Calidad", "Sostenibilidad"];
+      const cols = [C.gold, C.cyan, C.chalk, C.cyan, C.gold];
+      names.forEach((nm, k) => {
+        const x = -0.22 + k * 0.11;
+        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.02, 0.15, 12), stdMat(cols[k], { emissive: cols[k], emissiveIntensity: 0.12 }));
+        p.position.set(x, 0.095, 0); g.add(p);
+        const l = makeSprite(nm, { w: 0.2, color: cols[k] });
+        l.position.set(x, k % 2 ? -0.04 : -0.1, 0.2); g.add(l);
+      });
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.025, 0.12), stdMat("#CFC7B4")); slab.position.y = 0.183; g.add(slab);
+      const sl = makeSprite("Transformación", { w: 0.26, color: C.gold }); sl.position.set(0, 0.24, 0); g.add(sl);
+      animators.push(t => { slab.position.y = 0.183 + Math.sin(t * 1.4) * 0.004; });
+    },
+    // 5 · Camino de cinco fases
+    function (g) {
+      const pts = [];
+      for (let k = 0; k < 5; k++) {
+        const x = -0.22 + k * 0.11, y = 0.02 + k * 0.045, z = Math.sin(k / 4 * Math.PI) * 0.07;
+        const st = new THREE.Mesh(new THREE.CylinderGeometry(0.042, 0.046, 0.02, 24), stdMat(k === 4 ? C.gold : "#CFC7B4"));
+        st.position.set(x, y, z); g.add(st);
+        if (y > 0.03) {
+          const post = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, y, 8), stdMat("#3A4A4C"));
+          post.position.set(x, y / 2, z); g.add(post);
+        }
+        const l = makeSprite(String(k + 1), { w: 0.1, color: k === 4 ? C.gold : C.cyan }); l.position.set(x, y + 0.05, z); g.add(l);
+        pts.push(new THREE.Vector3(x, y + 0.03, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(pts);
+      const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 60, 0.003, 6, false), basicMat(C.cyan, { transparent: true, opacity: 0.6 }));
+      g.add(tube);
+      const orb = new THREE.Mesh(new THREE.SphereGeometry(0.016, 16, 12), basicMat(C.gold)); g.add(orb);
+      const lab = makeSprite("Del diagnóstico a la evaluación", { w: 0.36 }); lab.position.set(0, 0.32, 0); g.add(lab);
+      animators.push(t => { const u = (t * 0.12) % 1; orb.position.copy(curve.getPointAt(u)); orb.position.y += 0.012; });
+    }
+  ];
+
+  for (let i = 0; i < N; i++) {
+    const a = angleOf(i);
+    const ped = new THREE.Group();
+    ped.position.set(Math.sin(a) * R_DIO, 0, -Math.cos(a) * R_DIO);
+    ped.lookAt(0, 0, 0);
+    scene.add(ped);
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, PED_H, 32), stdMat(C.stone, { roughness: 0.9 }));
+    col.position.y = PED_H / 2; ped.add(col);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.006, 6, 64), basicMat(C.cyan));
+    rim.rotation.x = Math.PI / 2; rim.position.y = PED_H + 0.001; ped.add(rim);
+    const top = new THREE.Group(); top.position.y = PED_H + 0.002; ped.add(top);
+    DIORAMAS[i](top);
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  GUÍA EN EL PISO
+   * ------------------------------------------------------------------ */
+  const guide = new THREE.Group(); scene.add(guide);
+  const chevrons = [0.75, 1.0, 1.25].map(r => {
+    const sh = new THREE.Shape();
+    sh.moveTo(0, 0.1); sh.lineTo(-0.14, -0.04); sh.lineTo(-0.08, -0.04); sh.lineTo(0, 0.035); sh.lineTo(0.08, -0.04); sh.lineTo(0.14, -0.04); sh.closePath();
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(sh), basicMat(C.gold, { transparent: true, opacity: 0.6, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.set(0, 0.012, -r);
+    guide.add(m);
+    return m;
+  });
+  let guideAngle = 0;
+
+  /* ------------------------------------------------------------------ *
+   *  NAVEGACIÓN
+   * ------------------------------------------------------------------ */
+  function setBoardVisuals() {
+    boards.forEach(b => { b.mat.color.set(b.idx === state.active ? 0xffffff : 0xd2d6d3); });
+  }
+  function gotoStation(i, turnCamera) {
+    const prev = state.active;
+    state.active = i;
+    state.visited.add(i);
+    setBoardVisuals();
+    if (prev !== i) { drawBoard(boards[prev]); }
+    drawBoard(boards[i]);
+    if (turnCamera && !renderer.xr.isPresenting) view.targetYaw = -angleOf(i);
+    renderPanel();
+    if (state.autoNarrate) speakSlide(i);
+  }
+  function gotoSlide(i, si) {
+    const st = STATIONS[i];
+    if (si < 0 || si >= st.slides.length) return;
+    state.slide[i] = si;
+    if (state.active !== i) { gotoStation(i, false); }
+    else drawBoard(boards[i]);
+    if (state.autoNarrate) speakSlide(i); else if (speakingBoard === i) stopSpeak();
+  }
+  function answerQuiz(i, s, k) {
+    s.answer = k;
+    drawBoard(boards[i]);
+    if (state.autoNarrate) speak((k === s.correct ? "Muy bien. " : "Casi. ") + s.explain, i);
+  }
+
+  /* ---------- Narración ---------- */
+  function slideText(i) {
+    const st = STATIONS[i], s = st.slides[state.slide[i]];
+    switch (s.type) {
+      case "text": return s.title + ". " + s.body + " " + (s.note || "");
+      case "list": return s.title + ". " + (s.subtitle || "") + " " + s.items.map(it => it[0] + ": " + it[1]).join(" ");
+      case "steps": return s.title + ". " + s.items.map((it, k) => (k + 1) + ". " + it[0] + ". " + it[1]).join(" ");
+      case "compare": return s.title + ". " + s.rows.map(r => "Mito: " + r[0] + " Realidad: " + r[1]).join(" ");
+      case "quiz": return "Pregunta " + s.n + ". " + s.q + " " + s.options.map((o, k) => "ABC"[k] + ". " + o + ".").join(" ");
+      case "end": {
+        const qs = quizSlides(), ok = qs.filter(q => q.answer === q.correct).length;
+        return "Cierre de la clase. Obtuviste " + ok + " de 3 respuestas correctas. Para llevar a tu contexto: ¿qué proceso de tu programa académico podría pasar de la digitalización a la transformación digital este semestre?";
+      }
+    }
+    return "";
+  }
+  let esVoice = null;
+  function pickVoice() {
+    if (!("speechSynthesis" in window)) return null;
+    const vs = window.speechSynthesis.getVoices();
+    const pref = ["es-CO", "es-MX", "es-US", "es-419", "es-ES"];
+    for (const p of pref) { const v = vs.find(v => v.lang && v.lang.replace("_", "-").toLowerCase() === p.toLowerCase()); if (v) return v; }
+    return vs.find(v => v.lang && v.lang.toLowerCase().startsWith("es")) || null;
+  }
+  if ("speechSynthesis" in window) {
+    esVoice = pickVoice();
+    window.speechSynthesis.onvoiceschanged = () => { esVoice = pickVoice(); };
+  }
+  function speak(text, boardIdx) {
+    if (!("speechSynthesis" in window)) { setStatus("Este navegador no ofrece voz sintética.", true); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = esVoice ? esVoice.lang : "es-CO";
+    if (esVoice) u.voice = esVoice;
+    u.rate = 1;
+    const prev = speakingBoard;
+    speakingBoard = boardIdx;
+    u.onend = u.onerror = () => {
+      if (speakingBoard === boardIdx) { speakingBoard = -1; drawBoard(boards[boardIdx]); }
+    };
+    if (prev >= 0 && prev !== boardIdx) drawBoard(boards[prev]);
+    drawBoard(boards[boardIdx]);
+    window.speechSynthesis.speak(u);
+  }
+  function speakSlide(i) { speak(slideText(i), i); }
+  function stopSpeak() {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    const p = speakingBoard; speakingBoard = -1;
+    if (p >= 0) drawBoard(boards[p]);
+  }
+  function toggleSpeak(i) { if (speakingBoard === i) stopSpeak(); else speakSlide(i); }
+
+  /* ------------------------------------------------------------------ *
+   *  INTERACCIÓN: raycast común
+   * ------------------------------------------------------------------ */
+  const raycaster = new THREE.Raycaster();
+  function regionAt(hit) {
+    const b = boards[hit.object.userData.board];
+    const x = hit.uv.x * W, y = (1 - hit.uv.y) * H;
+    const r = b.regions.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+    return { b, r };
+  }
+  function applyHover(map) {
+    boards.forEach(b => {
+      const h = map.has(b.idx) ? map.get(b.idx) : null;
+      if (b.hover !== h) { b.hover = h; drawBoard(b); }
+    });
+  }
+  function activate(hit) {
+    const { b, r } = regionAt(hit);
+    if (r && r.action) { r.action(); return; }
+    if (b.idx !== state.active) gotoStation(b.idx, false);
+  }
+
+  /* ---------- Escritorio / móvil ---------- */
+  const mouse = new THREE.Vector2();
+  let drag = null;
+  function castFromEvent(e) {
+    const rect = canvasEl.getBoundingClientRect();
+    mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    return raycaster.intersectObjects(pickables, false)[0] || null;
+  }
+  canvasEl.addEventListener("pointerdown", e => {
+    drag = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch, moved: false, id: e.pointerId };
+    try { canvasEl.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  canvasEl.addEventListener("pointermove", e => {
+    if (drag && drag.id === e.pointerId) {
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (Math.abs(dx) + Math.abs(dy) > 6) drag.moved = true;
+      if (drag.moved) {
+        canvasEl.classList.add("dragging");
+        view.targetYaw = null;
+        const k = (camera.fov / 70) * 0.0055;
+        view.yaw = drag.yaw + dx * k;
+        view.pitch = Math.max(-1.0, Math.min(0.9, drag.pitch + dy * k));
+        applyView();
+      }
+      return;
+    }
+    const hit = castFromEvent(e);
+    const m = new Map();
+    if (hit) { const { b, r } = regionAt(hit); if (r) m.set(b.idx, r.id); }
+    canvasEl.classList.toggle("pointing", !!(hit && m.size));
+    applyHover(m);
+  });
+  const endDrag = e => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const wasClick = !drag.moved;
+    drag = null;
+    canvasEl.classList.remove("dragging");
+    if (wasClick) { const hit = castFromEvent(e); if (hit) activate(hit); }
+  };
+  canvasEl.addEventListener("pointerup", endDrag);
+  canvasEl.addEventListener("pointercancel", () => { drag = null; canvasEl.classList.remove("dragging"); });
+
+  window.addEventListener("keydown", e => {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON" && (e.key === " " || e.key === "Enter"))) return;
+    const i = state.active, si = state.slide[i], last = STATIONS[i].slides.length - 1;
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      if (si < last) gotoSlide(i, si + 1);
+      else gotoStation((i + 1) % N, true);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (si > 0) gotoSlide(i, si - 1);
+    }
+  });
+
+  /* ---------- Controles de realidad virtual ---------- */
+  const controllers = [];
+  const tmpM = new THREE.Matrix4();
+  for (let k = 0; k < 2; k++) {
+    const c = renderer.xr.getController(k);
+    const line = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, -1)]),
+      new THREE.LineBasicMaterial({ color: C.gold, transparent: true, opacity: 0.85 })
+    );
+    line.scale.z = 5;
+    c.add(line);
+    c.add(new THREE.Mesh(new THREE.SphereGeometry(0.01, 12, 8), basicMat(C.gold)));
+    const cursor = new THREE.Mesh(new THREE.RingGeometry(0.012, 0.022, 24), basicMat(C.gold, { depthTest: false, transparent: true }));
+    cursor.visible = false; scene.add(cursor);
+    c.userData = { line, cursor, hit: null };
+    c.addEventListener("connected", e => { c.userData.source = e.data; c.visible = e.data.targetRayMode !== "gaze"; });
+    c.addEventListener("disconnected", () => { c.userData.source = null; cursor.visible = false; });
+    c.addEventListener("select", () => { if (c.userData.hit) activate(c.userData.hit); });
+    dolly.add(c);
+    controllers.push(c);
+  }
+  const worldNormal = new THREE.Vector3();
+  function updateControllers() {
+    const m = new Map();
+    controllers.forEach(c => {
+      tmpM.identity().extractRotation(c.matrixWorld);
+      raycaster.ray.origin.setFromMatrixPosition(c.matrixWorld);
+      raycaster.ray.direction.set(0, 0, -1).applyMatrix4(tmpM);
+      const hit = c.visible ? (raycaster.intersectObjects(pickables, false)[0] || null) : null;
+      c.userData.hit = hit;
+      if (hit) {
+        c.userData.line.scale.z = hit.distance;
+        c.userData.cursor.visible = true;
+        c.userData.cursor.position.copy(hit.point);
+        worldNormal.copy(hit.face.normal).transformDirection(hit.object.matrixWorld);
+        c.userData.cursor.position.addScaledVector(worldNormal, 0.004);
+        c.userData.cursor.lookAt(hit.point.clone().add(worldNormal));
+        const { b, r } = regionAt(hit);
+        if (r) m.set(b.idx, r.id);
+      } else {
+        c.userData.line.scale.z = 5;
+        c.userData.cursor.visible = false;
+      }
+    });
+    applyHover(m);
+  }
+  let turnLatch = false;
+  function updateSnapTurn() {
+    const session = renderer.xr.getSession();
+    if (!session) return;
+    let ax = 0;
+    for (const src of session.inputSources) {
+      const gp = src.gamepad;
+      if (!gp || !gp.axes) continue;
+      const v = gp.axes.length >= 4 ? gp.axes[2] : gp.axes[0];
+      if (Math.abs(v) > Math.abs(ax)) ax = v;
+    }
+    if (!turnLatch && Math.abs(ax) > 0.7) {
+      turnLatch = true;
+      dolly.rotation.y -= Math.sign(ax) * Math.PI / 6;
+    } else if (Math.abs(ax) < 0.3) turnLatch = false;
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  ENTRAR A REALIDAD VIRTUAL
+   * ------------------------------------------------------------------ */
+  const vrBtn = document.getElementById("vrBtn");
+  const vrLabel = document.getElementById("vrLabel");
+  const vrStatus = document.getElementById("vrStatus");
+  function setStatus(t, warn) { vrStatus.textContent = t || ""; vrStatus.classList.toggle("warn", !!warn); }
+
+  const NO_XR_MSG = "Este navegador no ofrece modo de realidad virtual. Abre la clase en el navegador de Meta Quest. Mientras tanto puedes recorrerla aquí arrastrando la vista.";
+  (async function checkXR() {
+    if (!navigator.xr) { setStatus(NO_XR_MSG, false); return; }
+    try {
+      const ok = await navigator.xr.isSessionSupported("immersive-vr");
+      if (!ok) setStatus(NO_XR_MSG, false);
+      else setStatus("Visor compatible detectado. Pulsa el botón para entrar.");
+    } catch (err) {
+      setStatus("Esta vista no permite abrir el modo de realidad virtual. Abre la versión independiente de la clase en el navegador de Meta Quest.", true);
+    }
+  })();
+
+  let xrSession = null;
+  vrBtn.addEventListener("click", async () => {
+    if (xrSession) { xrSession.end(); return; }
+    if (!navigator.xr) { setStatus(NO_XR_MSG, true); return; }
+    try {
+      const session = await navigator.xr.requestSession("immersive-vr", { optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking"] });
+      xrSession = session;
+      session.addEventListener("end", onSessionEnd);
+      await renderer.xr.setSession(session);
+      vrLabel.textContent = "Salir de realidad virtual";
+      setStatus("");
+    } catch (err) {
+      setStatus("No fue posible iniciar la realidad virtual (" + (err && err.name ? err.name : "error") + "). Abre la versión independiente de la clase en el navegador de Meta Quest.", true);
+    }
+  });
+  function onSessionEnd() {
+    xrSession = null;
+    vrLabel.textContent = "Entrar en realidad virtual";
+    dolly.rotation.y = 0;
+    camera.position.set(0, 1.6, 0);
+    fitFov(); applyView();
+    controllers.forEach(c => { c.userData.cursor.visible = false; });
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  PANEL LATERAL
+   * ------------------------------------------------------------------ */
+  const list = document.getElementById("stationList");
+  const progress = document.getElementById("progress");
+  STATIONS.forEach((st, i) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button"; b.id = "st-" + i;
+    b.innerHTML = '<span class="num">' + String(i + 1).padStart(2, "0") + '</span><span class="nm"></span><span class="state"></span>';
+    b.querySelector(".nm").textContent = st.name;
+    b.addEventListener("click", () => gotoStation(i, true));
+    li.appendChild(b); list.appendChild(li);
+  });
+  function renderPanel() {
+    STATIONS.forEach((st, i) => {
+      const b = document.getElementById("st-" + i);
+      const s = b.querySelector(".state");
+      if (i === state.active) { b.setAttribute("aria-current", "step"); s.textContent = "aquí"; s.className = "state"; }
+      else {
+        b.removeAttribute("aria-current");
+        s.textContent = state.visited.has(i) ? "visitada" : "";
+        s.className = "state" + (state.visited.has(i) ? " done" : "");
+      }
+    });
+    progress.textContent = state.visited.size + " de " + N + " visitadas";
+  }
+  document.getElementById("autoNarr").addEventListener("change", e => {
+    state.autoNarrate = e.target.checked;
+    if (state.autoNarrate) speakSlide(state.active); else stopSpeak();
+  });
+  const panel = document.getElementById("panel");
+  const pt = document.getElementById("panelToggle");
+  pt.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+    pt.textContent = panel.hidden ? "Mostrar panel" : "Ocultar panel";
+    pt.setAttribute("aria-expanded", String(!panel.hidden));
+  });
+  if (window.innerWidth < 600) {
+    panel.hidden = true; pt.textContent = "Mostrar panel"; pt.setAttribute("aria-expanded", "false");
+  }
+
+  /* ------------------------------------------------------------------ *
+   *  BUCLE
+   * ------------------------------------------------------------------ */
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const clock = new THREE.Clock();
+  function shortest(a, b) { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
+
+  renderer.setAnimationLoop(() => {
+    const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
+    const motion = reduce ? 0.15 : 1;
+    animators.forEach(f => f(t * motion));
+
+    // polvo de datos
+    for (let i = 0; i < dust.n; i++) {
+      dust.pos[i * 3 + 1] += dust.spd[i] * dt * motion;
+      if (dust.pos[i * 3 + 1] > 4.6) dust.pos[i * 3 + 1] = 0;
+    }
+    dust.g.attributes.position.needsUpdate = true;
+
+    // guía
+    const target = -angleOf(state.active);
+    guideAngle += shortest(guideAngle, target) * Math.min(1, dt * 5);
+    guide.rotation.y = guideAngle;
+    chevrons.forEach((m, k) => { m.material.opacity = 0.25 + 0.6 * Math.max(0, Math.sin(t * 3 - k * 0.9)); });
+    boards.forEach(b => { b.glow.material.opacity = b.idx === state.active ? 0.1 + 0.06 * Math.sin(t * 2.4) : 0; });
+
+    if (renderer.xr.isPresenting) {
+      updateSnapTurn();
+      updateControllers();
+    } else if (view.targetYaw !== null) {
+      const d = shortest(view.yaw, view.targetYaw);
+      if (Math.abs(d) < 0.002) { view.yaw = view.targetYaw; view.targetYaw = null; }
+      else view.yaw += d * Math.min(1, dt * (reduce ? 20 : 4));
+      applyView();
+    }
+    renderer.render(scene, camera);
+  });
+
+  window.addEventListener("resize", () => {
+    if (renderer.xr.isPresenting) return;
+    renderer.setSize(window.innerWidth, window.innerHeight, false);
+    fitFov();
+  });
+
+  /* ------------------------------------------------------------------ *
+   *  ARRANQUE: esperar fuentes y dibujar
+   * ------------------------------------------------------------------ */
+  setBoardVisuals();
+  renderPanel();
+  drawAll();
+  const fontLoads = [
+    '800 80px "Bricolage Grotesque"', '400 40px "Atkinson Hyperlegible"',
+    '700 40px "Atkinson Hyperlegible"', '700 60px "Caveat"'
+  ].map(f => document.fonts && document.fonts.load ? document.fonts.load(f).catch(() => {}) : Promise.resolve());
+  Promise.all(fontLoads).then(() => { drawAll(); spriteDraws.forEach(d => d()); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawAll(); spriteDraws.forEach(d => d()); });
+})();
+</script>
+</body>
+</html>
