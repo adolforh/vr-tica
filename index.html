@@ -34,7 +34,8 @@
   h1 { margin: 10px 0 0; font: 800 clamp(34px, 6vw, 60px)/1.02 "Archivo", "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.02em; text-wrap: balance; }
   .lede { margin: 14px 0 0; max-width: 62ch; color: var(--muted); font-size: 19px; }
 
-  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+  .choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 24px; }
+  @media (max-width: 520px) { .choices { grid-template-columns: 1fr; } }
   .choice {
     display: grid; grid-template-rows: auto 1fr auto; gap: 18px;
     padding: 32px 30px 30px;
@@ -47,6 +48,12 @@
   .choice:hover, .choice:focus-visible { transform: translateY(-3px); border-color: var(--paper); outline: none; }
   .aula { background: var(--board); }
   .pabellon { background: #22272D; }
+  .museo { background: #1A2440; }
+  .hibrida { background: #123326; }
+  .hibrida .tag { color: #E0A526; }
+  .hibrida .go { background: #3FB57F; color: #06130E; }
+  .museo .tag { color: #8DB4FF; }
+  .museo .go { background: #4C8DFF; color: #fff; }
   .choice .tag { font: 500 13px/1.2 "IBM Plex Mono", ui-monospace, Menlo, monospace; letter-spacing: 0.14em; text-transform: uppercase; }
   .aula .tag { color: var(--chalk-gold); }
   .pabellon .tag { color: var(--gold); }
@@ -74,8 +81,8 @@
 <main>
   <header>
     <div class="kicker">Realidad virtual · Meta Quest</div>
-    <h1>Transformación digital educativa</h1>
-    <p class="lede">Dos experiencias inmersivas de los grupos TICA y Tecno-Innovaciones de la UPTC. Elige una, y dentro de ella pulsa <b>Entrar en realidad virtual</b>.</p>
+    <h1>Experiencias inmersivas TICA</h1>
+    <p class="lede">Cuatro experiencias inmersivas de los grupos TICA y Tecno-Innovaciones de la UPTC. Elige una, y dentro de ella pulsa <b>Entrar en realidad virtual</b>.</p>
   </header>
 
   <section class="choices" aria-label="Experiencias">
@@ -114,6 +121,40 @@
         <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9h22M16 2l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </span>
     </a>
+    <a class="choice museo" href="rv.html">
+      <div>
+        <div class="tag">Exposición · 8 salas · quiz final</div>
+        <h2>Museo de la Realidad Virtual</h2>
+      </div>
+      <div>
+        <p>Qué es la RV, su historia, tipos, cómo funciona, sus usos y sus aplicaciones en la educación y la empresa.</p>
+        <ul>
+          <li>Visor gigante que se desarma</li>
+          <li>Maquetas animadas en cada sala</li>
+          <li>Quiz interactivo de 8 preguntas</li>
+        </ul>
+      </div>
+      <span class="go">Entrar al museo
+        <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9h22M16 2l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+    <a class="choice hibrida" href="ia.html">
+      <div>
+        <div class="tag">Exposición · 8 salas · guías con voz</div>
+        <h2>Sala de Inteligencia Híbrida</h2>
+      </div>
+      <div>
+        <p>IA generativa y cointeligencia: cómo potenciar nuestras capacidades, usos éticos en educación, investigación y empresa, y riesgos.</p>
+        <ul>
+          <li>Dos voces guía, Lucía y Nexo, que dialogan</li>
+          <li>Objetos 3D que se despliegan con la explicación</li>
+          <li>Audio en español y trivias en cada sala</li>
+        </ul>
+      </div>
+      <span class="go">Entrar a la sala
+        <svg width="26" height="18" viewBox="0 0 26 18" aria-hidden="true"><path d="M1 9h22M16 2l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
   </section>
 
   <section class="help" aria-label="Controles">
@@ -123,7 +164,7 @@
     </div>
     <div>
       <h3>Moverse y girar</h3>
-      <p>En el pabellón, apunta al piso o a un <b>círculo dorado</b> para desplazarte. El <b>joystick</b> gira la vista 30°.</p>
+      <p>En el pabellón y el museo, apunta al piso o a un <b>círculo</b> de color para desplazarte. El <b>joystick</b> gira la vista 30°.</p>
     </div>
     <div>
       <h3>Salir</h3>
